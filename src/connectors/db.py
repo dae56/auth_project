@@ -18,4 +18,5 @@ def get_session() -> Session:
             echo=True if os.getenv("DB_ECHO") == "True" else False,
         )
     )
-    return session_factory()
+    with session_factory() as session:
+        return session
