@@ -12,4 +12,3 @@ tests | revert`
 * `DB_NAME` - Имя БД СУБД PostgreSQL
 * `DB_ECHO` - Трассировка запросов SQLAlchemy
 * `APP_DEBUG` - Режим дебага FastAPI
-
