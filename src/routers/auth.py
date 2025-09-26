@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 
 router = APIRouter(
@@ -6,7 +6,6 @@ router = APIRouter(
     tags=["auth"],
 )
 
-
-@router.get("/")
+@router.get("/healph")
 def root():
-    return "Hello, world!"
+    return {"status": status.HTTP_200_OK}
