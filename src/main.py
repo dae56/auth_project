@@ -17,6 +17,3 @@ app.include_router(auth_router)
 if __name__ == '__main__':
     print('{status: 200}' if get_session().scalar(text('SELECT 1')) == 1 else '{status: 500}')
     uvicorn.run(app, host='127.0.0.1', port=8000)
-
-
-    # C:\Users\alexey\Desktop\auth_project\.venv\Scripts\python.exe C:\Users\alexey\Desktop\auth_project\src\main.py
