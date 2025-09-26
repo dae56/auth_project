@@ -1,0 +1,9 @@
+### Пример заполнения переменных окружения:
+* `DB_HOST` - Хост СУБД PostgreSQL
+* `DB_PORT` - Порт СУБД PostgreSQL
+* `DB_USER` - Пользователь СУБД PostgreSQL
+* `DB_PASS` - Пароль пользователя СУБД PostgreSQL
+* `DB_NAME` - Имя БД СУБД PostgreSQL
+* `DB_ECHO` - Трассировка запросов SQLAlchemy
+* `APP_DEBUG` - Режим дебага FastAPI
+
