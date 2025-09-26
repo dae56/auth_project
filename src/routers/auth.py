@@ -2,10 +2,10 @@ from fastapi import APIRouter, status
 
 
 router = APIRouter(
-    prefix="/auth",
-    tags=["auth"],
+    prefix='/auth',
+    tags=['auth'],
 )
 
-@router.get("/healph")
+@router.get('/healph')
 def root():
-    return {"status": status.HTTP_200_OK}
+    return {'status': status.HTTP_200_OK}
