@@ -12,4 +12,6 @@ tests | revert`
 * `DB_NAME` - Имя БД СУБД PostgreSQL
 * `DB_ECHO` - Трассировка запросов SQLAlchemy
 * `APP_DEBUG` - Режим дебага FastAPI
-* `API_GATEWAY_TOKEN` - Токен кторый выдается Gateway сервису
+* `REFRESH_TABLE` - Пересоздание всех таблиц
+* `JWT_SALT` - Соль для разбавления JWT токена
+* `PASS_SALT` - Соль для разбавления паролей

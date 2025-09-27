@@ -4,6 +4,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from src.routers.auth import router as auth_router
+from src.connectors.db import refresh_table
 
 app = FastAPI(
     title="auth_service",
@@ -13,4 +14,6 @@ app = FastAPI(
 app.include_router(auth_router)
 
 if __name__ == "__main__":
+    if os.getenv("REFRESH_TABLE") == "True":
+        refresh_table()
     uvicorn.run(app, host="127.0.0.1", port=8000)

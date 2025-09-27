@@ -1,9 +1,19 @@
 import os
-from typing import Any
-from fastapi import APIRouter, Request, status
-from sqlalchemy import text
+import datetime
+
+import jwt
+
+from fastapi import APIRouter, Request, status, HTTPException
+from sqlalchemy import text, select
+from sqlalchemy.exc import IntegrityError
+
 
 from src.connectors.db import get_session
+from src.models.db.user import User, RoleUser
+from src.models.errors.exc import DuplicateEmail
+from src.models.validation.token import TokenData, Token
+from src.utils.auth import get_hash_data, encode_token, decode_token
+from src.models.validation.user import UserCreate, UserLogin
 
 
 router = APIRouter(
@@ -13,12 +23,94 @@ router = APIRouter(
 
 
 @router.get("/health-check")
-def health_check(request: Request) -> dict[str, int] | int:
-    if request.headers.get("api-gateway-request") == "True":
-        if request.headers.get("api-gateway-token") == os.getenv("API_GATEWAY_TOKEN"):
+def health_check() -> dict[str, dict[str, str | int]]:
+    return {
+        "app": {
+            "status_code": status.HTTP_200_OK,
+            "detail": "app is running."
+        },
+        "db": {
+            "status_code": status.HTTP_200_OK if get_session().scalar(text("SELECT 1")) else status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "detail": "db is running." if get_session().scalar(text("SELECT 1")) else "db is unavailable."
+        }
+    }
+
+
+@router.post("/registry")
+def registry(new_user_data: UserCreate, user_data: TokenData):
+    if user_data.role == "admin":
+        session = get_session()
+        try:
+            user = User(
+                first_name=new_user_data.first_name,
+                last_name=new_user_data.last_name,
+                email=new_user_data.email,
+                password_hash=get_hash_data(new_user_data.password, os.getenv("PASS_SALT")),
+                role=RoleUser.user
+            )
+            session.add(user)
+            session.commit()
+            session.refresh(user)
+        except IntegrityError as e:
+            session.rollback()
+            if e.code == "gkpj":
+                return HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=str(DuplicateEmail(e.params.get("email")))
+                )
+        else:
             return {
-                "app": status.HTTP_200_OK,
-                "db": 200 if get_session().scalar(text("SELECT 1")) else 500
+                "status_code": status.HTTP_200_OK,
+                "detail": "User registered successfully.",
+                "info": {
+                    "user_id": user.id,
+                    "email": user.email,
+                    "last_name": user.last_name,
+                    "first_name": user.first_name,
+                    "role": user.role,
+                    "is_active": user.is_active
+                }
             }
-        return status.HTTP_403_FORBIDDEN
-    return status.HTTP_404_NOT_FOUND
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not enough permissions."
+    )
+
+
+@router.post("/login")
+def login(user_data: UserLogin):
+    session = get_session()
+    res: User | None = session.execute(select(User).where(User.email == user_data.email)).scalar()
+    if res:
+        if res.password_hash == get_hash_data(user_data.password, os.getenv("PASS_SALT")):
+            return encode_token(
+                TokenData(
+                    exp=int((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30)).timestamp()),
+                    sub=str(res.id),
+                    role=res.role.value[0]
+                )
+            )
+        return HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password."
+        )
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="User not found."
+    )
+
+
+@router.post("/get-data-from-token")
+def get_data_from_token(token: Token):
+    try:
+        return decode_token(token.token)
+    except jwt.ExpiredSignatureError:
+        return HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token is expired."
+        )
+    except jwt.InvalidTokenError:
+        return HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect token."
+        )
