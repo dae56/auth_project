@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from src.connectors.db import get_session
 from src.models.db.user import User, RoleUser
 from src.models.errors.exc import DuplicateEmail
-from src.models.validation.token import TokenData, Token
+from src.models.validation.token import TokenData
 from src.utils.auth import get_hash_data, encode_token, decode_token
 from src.models.validation.user import UserCreate, UserLogin
 
@@ -101,9 +101,15 @@ def login(user_data: UserLogin):
 
 
 @router.post("/get-data-from-token")
-def get_data_from_token(token: Token):
+def get_data_from_token(request: Request):
     try:
-        return decode_token(token.token)
+        header_authorization: str | None = request.headers.get("Authorization")
+        if header_authorization:
+            return decode_token(header_authorization.split(" ")[1])
+        return HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token."
+        )
     except jwt.ExpiredSignatureError:
         return HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
