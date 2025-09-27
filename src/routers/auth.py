@@ -37,8 +37,9 @@ def health_check() -> dict[str, dict[str, str | int]]:
 
 
 @router.post("/registry")
-def registry(new_user_data: UserCreate, user_data: TokenData):
-    if user_data.role == "admin":
+def registry(new_user_data: UserCreate, request: Request):
+    header_role = request.headers.get("Role")
+    if header_role == "admin":
         session = get_session()
         try:
             user = User(
@@ -71,9 +72,14 @@ def registry(new_user_data: UserCreate, user_data: TokenData):
                     "is_active": user.is_active
                 }
             }
+    elif header_role != "admin":
+        return HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions."
+        )
     return HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Not enough permissions."
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated."
     )
 
 
